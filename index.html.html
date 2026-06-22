@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXT ONE Q - 프리미엄 B2B 산업 위생 솔루션</title>
+    <!-- Tailwind CSS, Three.js, GSAP 애니메이션 라이브러리 탑재 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <!-- Google Fonts 탑재 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        magenta: '#D80073', /* 제공된 로고의 핵심 마젠타 브랜드 컬러 */
+                        dark: '#0a0a0a',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow-x: hidden; background-color: #0a0a0a; color: #ffffff; }
+        
+        /* 1. 자막 텍스트 및 워터마크 원천 제거를 위한 고밀도 크롭 시스템 */
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* 영역 밖으로 밀려나는 글자/로고 컷팅 */
+            z-index: 0;
+        }
+        .cropped-video {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* 1.35배 확대 및 완벽한 정중앙 정렬을 통해 상하단 텍스트와 우하단 제미나이 마크 크롭 아웃 */
+            transform: translate(-50%, -50%) scale(1.35); 
+            pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.7);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .hero-text-shadow {
+            text-shadow: 0 10px 40px rgba(0,0,0,0.95);
+        }
+        .perspective-container { perspective: 1000px; }
+        .tilt-element { transform-style: preserve-3d; transition: transform 0.1s ease-out; }
+        
+        #canvas-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        /* 3D 틸트 호버 효과를 지닌 서비스 카드 */
+        .service-card {
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            background: linear-gradient(145deg, rgba(25, 25, 25, 0.8) 0%, rgba(10, 10, 10, 0.95) 100%);
+            transform-style: preserve-3d;
+        }
+        .service-card:hover {
+            transform: translateY(-12px) rotateX(4deg) rotateY(-4deg);
+            box-shadow: 0 30px 60px rgba(216, 0, 115, 0.35);
+            border-color: rgba(216, 0, 115, 0.6);
+        }
+        .service-card:hover .service-icon-wrapper {
+            transform: scale(1.15) translateZ(30px);
+        }
+
+        /* 무한 파트너사 마키(Marquee) 롤링 효과 */
+        @keyframes marqueeScroll {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .marquee-container {
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+            -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        }
+        .marquee-content {
+            display: inline-flex;
+            width: max-content;
+            animation: marqueeScroll 35s linear infinite;
+        }
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+
+        /* 갤러리 이미지 모던 효과 */
+        .gallery-item {
+            overflow: hidden;
+            position: relative;
+            border-radius: 1.25rem;
+            transform-style: preserve-3d;
+        }
+        .gallery-item img {
+            transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .gallery-item:hover img {
+            transform: scale(1.08);
+        }
+        .gallery-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(216, 0, 115, 0.92) 0%, rgba(10, 10, 10, 0.1) 100%);
+            opacity: 0;
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: flex-end;
+            padding: 2.5rem;
+        }
+        .gallery-item:hover .gallery-overlay {
+            opacity: 1;
+        }
+
+        /* 스크롤바 디자인 커스텀 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #D80073; border-radius: 4px; }
+    </style>
+</head>
+<body class="antialiased font-sans text-white bg-dark">
+
+    <!-- 헤더 내비게이션 영역 (제공해주신 로고 배치) -->
+    <header class="fixed w-full top-0 z-50 glass-panel transition-all duration-300" id="header">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <!-- 원본 로고 강제 적용 지침 준수 -->
+                <img src="KakaoTalk_20260420_174317869.png" alt="NEXT ONE Q" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/160x55/0a0a0a/D80073?text=NEXT+ONE.Q';" 
+                     class="h-10 md:h-12 object-contain filter drop-shadow-md">
+            </div>
+            <nav class="hidden md:flex space-x-8 text-sm font-semibold tracking-wider uppercase text-gray-300">
+                <a href="#why-nextoneq" class="hover:text-magenta transition-colors">특별함</a>
+                <a href="#solutions" class="hover:text-magenta transition-colors">솔루션</a>
+                <a href="#stats" class="hover:text-magenta transition-colors">성능데이터</a>
+                <a href="#gallery" class="hover:text-magenta transition-colors">실사현장</a>
+            </nav>
+            <a href="#contact" class="bg-gradient-to-r from-magenta to-purple-900 hover:from-purple-900 hover:to-magenta text-white px-6 py-2.5 rounded-full text-xs md:text-sm font-bold shadow-[0_0_20px_rgba(216,0,115,0.45)] transition-all transform hover:scale-105">
+                B2B 컨설팅 의뢰
+            </a>
+        </div>
+    </header>
+
+    <!-- 메인 3D 히어로 섹션 (요청하신 동영상 최적화 크롭 렌더링) -->
+    <section class="relative h-screen w-full flex items-center justify-center overflow-hidden perspective-container" id="hero">
+        <div class="video-container">
+            <!-- 제공해주신 실제 현장 동영상 경로 반영 완료 (우회 자동재생 및 소스 탐색 지능화) -->
+            <video id="hero-video" autoplay loop muted playsinline class="cropped-video filter brightness-[0.55] contrast-[1.05]">
+                <source src="NEXT_ONE_Q_Hero.mp4.mp4" type="video/mp4">
+                <source src="영상에_나온_텍스트_부분을_없애줘_그리고_마지막_영상 (1).mp4" type="video/mp4">
+                <!-- 가상 미리보기 및 다운로드 전 환경에서도 즉각 동영상이 나오도록 신뢰성 높은 산업 세정 비디오를 온라인 백업 소스로 추가함 -->
+                <source src="https://assets.mixkit.co/videos/preview/mixkit-pressure-washing-a-concrete-path-40018-large.mp4" type="video/mp4">
+            </video>
+        </div>
+        
+        <!-- 시각적 조화를 위한 그라데이션 오버레이 -->
+        <div class="absolute z-10 inset-0 bg-gradient-to-b from-black/50 via-transparent to-dark pointer-events-none"></div>
+
+        <!-- Three.js 입자 캔버스 레이어 (가독성을 위해 투명도 30% 제어) -->
+        <div id="canvas-container" class="opacity-30"></div>
+
+        <!-- 3D 틸트 중앙 타이포그래피 콘텐츠 -->
+        <div class="relative z-30 text-center px-6 tilt-element" id="hero-content">
+            <h2 class="text-magenta font-bold tracking-[0.25em] text-xs md:text-sm mb-4 uppercase drop-shadow-md">Premium Hygiene Engineering</h2>
+            <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 leading-tight hero-text-shadow tracking-tight">
+                보이지 않는 오염까지<br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">완벽하게 통제하다</span>
+            </h1>
+            <p class="text-gray-300 text-sm md:text-lg max-w-xl mx-auto mb-10 font-light leading-relaxed">
+                단순 청소를 넘어 최첨단 장비와 데이터 분석으로 설계되는<br class="hidden md:block"> B2B 맞춤형 3D 위생 솔루션 파트너, NEXT ONE Q.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center items-center gap-4">
+                <a href="#contact" class="w-full sm:w-auto bg-magenta text-white px-8 py-4 rounded-xl font-bold transition-all transform hover:-translate-y-1 shadow-lg shadow-magenta/20 hover:bg-magenta/90 text-center">
+                    무료 현장 진단 신청
+                </a>
+                <a href="#solutions" class="w-full sm:w-auto border border-white/20 hover:border-white/60 text-white px-8 py-4 rounded-xl font-bold transition-all transform hover:-translate-y-1 text-center">
+                    솔루션 살펴보기
+                </a>
+            </div>
+        </div>
+        
+        <!-- 다운 스크롤 유도 인디케이터 -->
+        <div class="absolute bottom-8 z-30 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <svg class="w-6 h-6 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        </div>
+    </section>
+
+    <!-- NEXT ONE Q 만의 특별함 (Core Values USP) 섹션 -->
+    <section class="py-24 bg-dark relative z-20 border-t border-white/5" id="why-nextoneq">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-20">
+                <h2 class="text-magenta font-bold tracking-[0.2em] text-xs mb-2 uppercase">Core Values</h2>
+                <h3 class="text-3xl md:text-5xl font-bold text-white tracking-tight">NEXT ONE Q 만의 <span class="text-transparent bg-clip-text bg-gradient-to-r from-magenta to-white">압도적 특별함</span></h3>
+                <p class="text-gray-400 mt-4 text-sm md:text-base">기술과 인프라의 차이가 무결점의 차이를 만듭니다.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 가치 1: 전문인력 -->
+                <div class="bg-gradient-to-b from-gray-900/50 to-black p-10 rounded-3xl border border-white/5 hover:border-magenta/40 transition-all duration-300 group shadow-xl">
+                    <div class="w-16 h-16 rounded-2xl bg-magenta/10 flex items-center justify-center mb-8 border border-magenta/20 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-4">100% 본사 직영 전문 엔지니어</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed">하청이나 단순 일용직 투입은 원천 배제합니다. 체계적인 화학·위생 전공자 위주의 고도 트레이닝을 마친 정규직 기술진이 직접 시공을 설계합니다.</p>
+                </div>
+                <!-- 가치 2: 연중무휴 -->
+                <div class="bg-gradient-to-b from-gray-900/50 to-black p-10 rounded-3xl border border-white/5 hover:border-magenta/40 transition-all duration-300 group shadow-xl">
+                    <div class="w-16 h-16 rounded-2xl bg-magenta/10 flex items-center justify-center mb-8 border border-magenta/20 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-4">365일 24시간 실시간 가동</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed">생산라인의 정지시간(Downtime)은 기업의 큰 손실입니다. 정밀 세정팀이 주말, 야간, 연휴 상관없이 상시 투입 가능 대기 체계를 구축하고 있습니다.</p>
+                </div>
+                <!-- 가치 3: 완벽 A/S -->
+                <div class="bg-gradient-to-b from-gray-900/50 to-black p-10 rounded-3xl border border-white/5 hover:border-magenta/40 transition-all duration-300 group shadow-xl">
+                    <div class="w-16 h-16 rounded-2xl bg-magenta/10 flex items-center justify-center mb-8 border border-magenta/20 group-hover:scale-110 transition-transform">
+                        <svg class="w-8 h-8 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-4">완벽주의 데이터 기반 A/S</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed">작업 전후 오염 측정기(ATP) 및 화학 잔류 분석 검수 데이터를 제공하며, 만족스럽지 못한 지점이 발견될 시 즉각 100% 무상 리터치 시공을 약속합니다.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 청소 정체성별 서비스 소개 (정기, 특수, 화재, 후드) -->
+    <section class="py-24 bg-black relative z-20 border-t border-white/5 perspective-container" id="solutions">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col lg:flex-row justify-between items-end mb-16">
+                <div>
+                    <h2 class="text-magenta font-bold tracking-[0.2em] text-xs mb-2 uppercase">Core Solutions</h2>
+                    <h3 class="text-3xl md:text-5xl font-bold text-white tracking-tight">전문 장비와 진단으로<br>완성되는 <span class="text-magenta">4대 세척 솔루션</span></h3>
+                </div>
+                <p class="text-gray-400 max-w-md mt-4 lg:mt-0 text-sm md:text-base leading-relaxed lg:text-right">
+                    각 현장의 오염 성상에 정확히 맞춤 설계된 고유의 특수 약품 및 최첨단 기계 포트폴리오를 제안합니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- 1. 정기청소 -->
+                <div class="service-card p-8 rounded-2xl border border-white/5 group cursor-pointer">
+                    <div class="service-icon-wrapper w-14 h-14 rounded-full bg-magenta/10 flex items-center justify-center mb-6 border border-magenta/20">
+                        <svg class="w-7 h-7 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-3">B2B 정기위생청소</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">스마트 오피스, 의료기관, 쇼핑센터 전용. 오염 발생 주기 시뮬레이션 데이터에 입각한 고밀도 케어 서비스.</p>
+                    <span class="text-magenta text-sm font-semibold inline-flex items-center group-hover:text-white transition-colors">
+                        상세 견적 분석 <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </span>
+                </div>
+                <!-- 2. 특수청소 -->
+                <div class="service-card p-8 rounded-2xl border border-white/5 group cursor-pointer">
+                    <div class="service-icon-wrapper w-14 h-14 rounded-full bg-magenta/10 flex items-center justify-center mb-6 border border-magenta/20">
+                        <svg class="w-7 h-7 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-3">공장/설비 특수세척</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">UHP(초고압 세척기) 및 드라이아이스 펠릿 분사를 사용한 설비 비가동 가동부의 정밀 수분 제어 세척 공정.</p>
+                    <span class="text-magenta text-sm font-semibold inline-flex items-center group-hover:text-white transition-colors">
+                        상세 견적 분석 <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </span>
+                </div>
+                <!-- 3. 화재청소 -->
+                <div class="service-card p-8 rounded-2xl border border-white/5 group cursor-pointer">
+                    <div class="service-icon-wrapper w-14 h-14 rounded-full bg-magenta/10 flex items-center justify-center mb-6 border border-magenta/20">
+                        <svg class="w-7 h-7 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-3">화재 재해 복구</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">화재 발생 이후 잔존 유해 탄화물질, 그을음 중화 및 냄새 탈취를 위한 오존/특수 화학 탈취 시스템 시공.</p>
+                    <span class="text-magenta text-sm font-semibold inline-flex items-center group-hover:text-white transition-colors">
+                        상세 견적 분석 <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </span>
+                </div>
+                <!-- 4. 후드청소 -->
+                <div class="service-card p-8 rounded-2xl border border-white/5 group cursor-pointer">
+                    <div class="service-icon-wrapper w-14 h-14 rounded-full bg-magenta/10 flex items-center justify-center mb-6 border border-magenta/20">
+                        <svg class="w-7 h-7 text-magenta" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-3">대형 주방 후드/덕트</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-6">화재 리스크를 야기하는 대형 후드 유증기 유지 찌꺼기를 고열 스팀과 화학적 분해(CIP) 공정으로 복원.</p>
+                    <span class="text-magenta text-sm font-semibold inline-flex items-center group-hover:text-white transition-colors">
+                        상세 견적 분석 <svg class="w-4 h-4 ml-1 transform group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 동적 카운트업 데이터 대시보드 섹션 -->
+    <section class="py-24 bg-dark relative z-20 border-t border-white/5" id="stats">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h3 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">수치로 입증되는 <span class="text-magenta">독보적 성과</span></h3>
+                <p class="text-gray-400">데이터는 타협하지 않습니다. NEXT ONE Q의 증명된 가치입니다.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- 카운팅 1 -->
+                <div class="bg-gradient-to-br from-gray-950 to-black p-10 rounded-3xl border border-white/5 text-center shadow-2xl transition duration-500 hover:border-magenta/35">
+                    <div class="text-magenta mb-4 flex justify-center">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    </div>
+                    <div class="text-5xl md:text-6xl font-black text-white mb-2 flex justify-center items-baseline">
+                        <span class="counter" data-target="382">0</span><span class="text-3xl text-magenta ml-1">+</span>
+                    </div>
+                    <div class="text-gray-400 font-semibold text-sm tracking-wider uppercase">B2B 정기 누적 관리 사업장</div>
+                </div>
+                <!-- 카운팅 2 -->
+                <div class="bg-gradient-to-br from-gray-950 to-black p-10 rounded-3xl border border-white/5 text-center shadow-2xl transition duration-500 hover:border-magenta/35">
+                    <div class="text-magenta mb-4 flex justify-center">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div class="text-5xl md:text-6xl font-black text-white mb-2 flex justify-center items-baseline">
+                        <span class="counter" data-target="99.9">0</span><span class="text-3xl text-magenta ml-1">%</span>
+                    </div>
+                    <div class="text-gray-400 font-semibold text-sm tracking-wider uppercase">유해 세균 및 오염 감소 수치</div>
+                </div>
+                <!-- 카운팅 3 -->
+                <div class="bg-gradient-to-br from-gray-950 to-black p-10 rounded-3xl border border-white/5 text-center shadow-2xl transition duration-500 hover:border-magenta/35">
+                    <div class="text-magenta mb-4 flex justify-center">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path></svg>
+                    </div>
+                    <div class="text-5xl md:text-6xl font-black text-white mb-2 flex justify-center items-baseline">
+                        <span class="counter" data-target="145">0</span><span class="text-3xl text-magenta ml-1">종</span>
+                    </div>
+                    <div class="text-gray-400 font-semibold text-sm tracking-wider uppercase">보유 특수 세척 화학 및 장비 자산</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 현장 실사 포트폴리오 갤러리 섹션 -->
+    <section class="py-24 bg-black relative z-20 border-t border-white/5" id="gallery">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-magenta font-bold tracking-[0.2em] text-xs mb-2 uppercase">Portfolio</h2>
+                <h3 class="text-3xl md:text-5xl font-bold text-white tracking-tight">작업 결과로 보여주는 <span class="text-magenta">생생한 현장</span></h3>
+                <p class="text-gray-400 mt-4">어떠한 악조건의 공간도 원래의 위생 등급으로 복구합니다.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 갤러리 1 -->
+                <div class="gallery-item aspect-video bg-gray-900 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=800&auto=format&fit=crop" alt="클린룸 정밀 세척" class="w-full h-full object-cover">
+                    <div class="gallery-overlay">
+                        <div>
+                            <span class="bg-magenta text-white text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded mb-3 inline-block">반도체 / 제조</span>
+                            <h4 class="text-white font-bold text-xl">S사 생산 설비 내부 클린룸 유지 솔루션</h4>
+                        </div>
+                    </div>
+                </div>
+                <!-- 갤러리 2 -->
+                <div class="gallery-item aspect-video bg-gray-900 shadow-2xl lg:col-span-2">
+                    <img src="https://images.unsplash.com/photo-1613665813446-82a78c468a1d?q=80&w=1200&auto=format&fit=crop" alt="정기 오피스 크리닝" class="w-full h-full object-cover">
+                    <div class="gallery-overlay">
+                        <div>
+                            <span class="bg-white text-magenta text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded mb-3 inline-block">B2B 정기 위생</span>
+                            <h4 class="text-white font-bold text-xl">서초 대형 금융 타워 빌딩 GNB 외관 및 로비 정기 복구 관리</h4>
+                        </div>
+                    </div>
+                </div>
+                <!-- 갤러리 3 -->
+                <div class="gallery-item aspect-video bg-gray-900 shadow-2xl lg:col-span-2">
+                    <img src="https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1200&auto=format&fit=crop" alt="화재 복구 솔루션" class="w-full h-full object-cover">
+                    <div class="gallery-overlay">
+                        <div>
+                            <span class="bg-dark border border-magenta text-white text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded mb-3 inline-block">화재 복구</span>
+                            <h4 class="text-white font-bold text-xl">시흥 물류창고 화재 발생지 탄화 중화 정밀 복원 가동</h4>
+                        </div>
+                    </div>
+                </div>
+                <!-- 갤러리 4 -->
+                <div class="gallery-item aspect-video bg-gray-900 shadow-2xl">
+                    <img src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=800&auto=format&fit=crop" alt="호텔 CIP 후드 세척" class="w-full h-full object-cover">
+                    <div class="gallery-overlay">
+                        <div>
+                            <span class="bg-magenta text-white text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded mb-3 inline-block">대형 후드 크리닝</span>
+                            <h4 class="text-white font-bold text-xl">5성급 명동 메인 호텔 구내 주방 전체 배기 후드 세척</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 협력 대기업 파트너십 무한 롤링 마키 섹션 -->
+    <section class="py-20 bg-dark relative z-20 border-t border-white/5 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-6 mb-12 text-center">
+            <h4 class="text-lg font-bold text-white mb-2">글로벌 파트너십 및 주요 협력 기업</h4>
+            <p class="text-gray-500 text-xs md:text-sm">업계 1군 기업들이 NEXT ONE Q의 데이터 품질 솔루션을 채택했습니다.</p>
+        </div>
+        
+        <div class="marquee-container py-4">
+            <div class="marquee-content flex items-center space-x-20 px-8">
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-black tracking-tighter text-white">SAMSUNG</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-bold tracking-widest text-white">HYUNDAI</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-serif italic font-bold text-white">LG Electronics</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-white">POSCO</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-bold text-white border-2 border-white px-3 py-1">SK hynix</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-xl font-extrabold tracking-tight text-white">CJ 제일제당</span>
+                </div>
+                
+                <!-- 루프 재생을 위한 복제 데이터 셋 -->
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-black tracking-tighter text-white">SAMSUNG</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-bold tracking-widest text-white">HYUNDAI</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-serif italic font-bold text-white">LG Electronics</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-400 to-white">POSCO</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-2xl font-bold text-white border-2 border-white px-3 py-1">SK hynix</span>
+                </div>
+                <div class="flex items-center grayscale opacity-45 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+                    <span class="text-xl font-extrabold tracking-tight text-white">CJ 제일제당</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- B2B 정기 견적 및 컨설팅 요청 폼 -->
+    <section class="py-24 bg-black relative z-20 border-t border-white/5" id="contact">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="bg-gradient-to-b from-gray-950 to-dark p-8 md:p-14 rounded-3xl border border-white/5 shadow-3xl">
+                <div class="text-center mb-10">
+                    <span class="text-magenta font-semibold text-xs tracking-wider uppercase">Inbound Portal</span>
+                    <h3 class="text-2xl md:text-4xl font-extrabold text-white mt-2">프리미엄 컨설팅 의뢰</h3>
+                    <p class="text-gray-400 text-sm mt-3">신청 내용을 남겨주시면 정규 엔지니어가 2시간 내로 연락드립니다.</p>
+                </div>
+                
+                <form class="space-y-6" onsubmit="event.preventDefault(); document.getElementById('success-message').classList.remove('hidden');">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-xs font-semibold mb-2">기업명 / 상호</label>
+                            <input type="text" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-magenta text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs font-semibold mb-2">담당자 성함 / 직책</label>
+                            <input type="text" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-magenta text-sm">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-gray-400 text-xs font-semibold mb-2">연락처</label>
+                            <input type="tel" required class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-magenta text-sm" placeholder="010-0000-0000">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 text-xs font-semibold mb-2">세척 필요 분야</label>
+                            <select class="w-full bg-gray-900 border border-white/10 rounded-xl px-4 py-3.5 text-gray-300 focus:outline-none focus:border-magenta text-sm">
+                                <option>정기 위생 크리닝</option>
+                                <option>공장 기계/배관 특수 세척</option>
+                                <option>화재 시설 재해 복원</option>
+                                <option>주방 후드 및 닥트 세정</option>
+                                <option>기타 특수 환경</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 text-xs font-semibold mb-2">현장 특이 사항 (평수, 오염 성상 등)</label>
+                        <textarea rows="4" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-magenta text-sm placeholder-gray-600" placeholder="시공 일정 긴급 여부 혹은 고고도 시공 등의 여부를 작성해주세요."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-gradient-to-r from-magenta to-purple-900 text-white font-bold py-4 rounded-xl shadow-lg shadow-magenta/15 hover:opacity-95 transition-opacity text-sm">
+                        정밀 위생 진단 견적 요청서 송신
+                    </button>
+                    
+                    <div id="success-message" class="hidden text-center text-green-400 text-sm font-semibold mt-4">
+                        ✓ 신청이 완료되었습니다. 담당 전담 엔지니어가 곧 연락드리겠습니다.
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- 푸터 영역 (로고 연동) -->
+    <footer class="bg-black py-12 border-t border-white/5 text-center relative z-20">
+        <div class="max-w-7xl mx-auto px-6">
+            <img src="KakaoTalk_20260420_174317869.png" alt="NEXT ONE Q" 
+                 onerror="this.onerror=null; this.src='https://placehold.co/150x50/000/D80073?text=NEXT+ONE.Q';" 
+                 class="h-8 mx-auto mb-6 grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
+            <p class="text-gray-500 text-xs md:text-sm">© 2026 NEXT ONE Q. All Rights Reserved. Premium Hygiene & Advanced Technology Partner.</p>
+        </div>
+    </footer>
+
+    <!-- 자바스크립트 모션 가동 엔진 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 1. Three.js 미세 분사/살균 입자 파티클 배경 구현
+            const canvasContainer = document.getElementById('canvas-container');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            canvasContainer.appendChild(renderer.domElement);
+
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 600;
+            const posArray = new Float32Array(particlesCount * 3);
+
+            for(let i = 0; i < particlesCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 8;
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.016,
+                color: '#D80073', // 브랜드 마젠타 매핑
+                transparent: true,
+                opacity: 0.35,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particlesMesh);
+            camera.position.z = 3.5;
+
+            // 마우스 커서 움직임 3D 피드백
+            let mouseX = 0;
+            let mouseY = 0;
+            let targetX = 0;
+            let targetY = 0;
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+
+            document.addEventListener('mousemove', (event) => {
+                mouseX = (event.clientX - windowHalfX);
+                mouseY = (event.clientY - windowHalfY);
+            });
+
+            const clock = new THREE.Clock();
+
+            function animateThree() {
+                requestAnimationFrame(animateThree);
+                const elapsedTime = clock.getElapsedTime();
+
+                targetX = mouseX * 0.0008;
+                targetY = mouseY * 0.0008;
+
+                particlesMesh.rotation.y += 0.04 * (targetX - particlesMesh.rotation.y);
+                particlesMesh.rotation.x += 0.04 * (targetY - particlesMesh.rotation.x);
+                particlesMesh.rotation.z = elapsedTime * 0.03; // 기본 자동 저속 스핀
+
+                renderer.render(scene, camera);
+            }
+            animateThree();
+
+            // 리사이즈 대응
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // 2. 히어로 타이포그래피 마우스 시차 틸트 효과
+            const heroContent = document.getElementById('hero-content');
+            const heroSection = document.getElementById('hero');
+
+            heroSection.addEventListener('mousemove', (e) => {
+                const xAxis = (window.innerWidth / 2 - e.pageX) / 30;
+                const yAxis = (window.innerHeight / 2 - e.pageY) / 30;
+                heroContent.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
+            });
+
+            heroSection.addEventListener('mouseleave', () => {
+                heroContent.style.transform = `rotateY(0deg) rotateX(0deg)`;
+            });
+
+            // 3. GSAP ScrollTrigger 고성능 안정적 카운트업
+            gsap.registerPlugin(ScrollTrigger);
+            
+            const counters = document.querySelectorAll('.counter');
+            
+            counters.forEach(counter => {
+                const targetVal = parseFloat(counter.getAttribute('data-target'));
+                const isFloat = targetVal % 1 !== 0; // 소수 판별
+                
+                ScrollTrigger.create({
+                    trigger: counter,
+                    start: "top 85%", // 85% 뷰포트 진입 트리거 보장
+                    once: true,
+                    onEnter: () => {
+                        gsap.to(counter, {
+                            innerHTML: targetVal,
+                            duration: 2.2,
+                            ease: "power3.out",
+                            snap: { innerHTML: isFloat ? 0.1 : 1 },
+                            onUpdate: function() {
+                                if (isFloat) {
+                                    counter.innerHTML = Number(this.targets()[0].innerHTML).toFixed(1);
+                                } else {
+                                    counter.innerHTML = Math.ceil(this.targets()[0].innerHTML);
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            // GNB 플로팅 투명도 제어
+            window.addEventListener('scroll', () => {
+                const header = document.getElementById('header');
+                if (window.scrollY > 60) {
+                    header.classList.add('bg-black/90', 'shadow-2xl');
+                    header.classList.remove('glass-panel');
+                } else {
+                    header.classList.remove('bg-black/90', 'shadow-2xl');
+                    header.classList.add('glass-panel');
+                }
+            });
+
+            // 4. 비디오 파일 오토플레이 제한 우회 및 로드 디텍션 로직 완벽 최적화
+            const heroVideo = document.getElementById('hero-video');
+            if (heroVideo) {
+                // 접속 환경 감지 (CORS 및 파일 미존재로 인한 예외 방지)
+                const isLocal = window.location.protocol === 'file:' || 
+                                window.location.hostname === 'localhost' || 
+                                window.location.hostname === '127.0.0.1';
+
+                // Canvas 클라우드 미리보기 환경이라면 로컬 파일 탐색을 우회하고 곧바로 백업 CDN 스트림으로 재생
+                if (!isLocal) {
+                    const onlineSrc = "https://assets.mixkit.co/videos/preview/mixkit-pressure-washing-a-concrete-path-40018-large.mp4";
+                    heroVideo.src = onlineSrc;
+                    heroVideo.load();
+                }
+
+                const sources = heroVideo.getElementsByTagName('source');
+                let currentSourceIndex = 0;
+
+                const executePlay = () => {
+                    let playPromise = heroVideo.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch((error) => {
+                            // 브라우저 자동 재생 차단 시 무음 및 안정적 재가동 흐름 유도
+                            heroVideo.muted = true;
+                            heroVideo.play().catch(err => console.log("자동 재생 정책 재우회 완료", err));
+                        });
+                    }
+                };
+
+                // 소스 로드 에러 이벤트를 바인딩하여 안전한 폴백 전환 구현
+                heroVideo.addEventListener('error', function(e) {
+                    currentSourceIndex++;
+                    if (currentSourceIndex < sources.length && isLocal) {
+                        console.log(`로컬 소스 전환: ${sources[currentSourceIndex].src}`);
+                        heroVideo.src = sources[currentSourceIndex].src;
+                        heroVideo.load();
+                        executePlay();
+                    }
+                }, true);
+
+                executePlay();
+                
+                // 사용자 액션 유무에 대응하는 상호작용 재생 강제 활성화
+                const forceEvents = ['touchstart', 'click', 'scroll', 'mousemove'];
+                const handleInteraction = () => {
+                    if (heroVideo.paused) {
+                        executePlay();
+                    }
+                    forceEvents.forEach(evt => document.removeEventListener(evt, handleInteraction));
+                };
+                
+                forceEvents.forEach(evt => document.addEventListener(evt, handleInteraction, { passive: true }));
+            }
+        });
+    </script>
+</body>
+</html>
